@@ -1,3 +1,14 @@
+# binaries
+traffic_light_demo
+test
+
+# directories
+./obj
+
+# vim swap files
+*.swo
+*.swp
+
 # Prerequisites
 *.d
 
