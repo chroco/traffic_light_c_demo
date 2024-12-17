@@ -17,17 +17,13 @@ APP_SRCS=$(SRC)/main.c \
 				 $(SRC)/traffic_light.c 
 
 TEST_SRCS=$(SRC)/test_main.c \
-					$(SRC)/test.c
-
-APP_INC=$(INC)/traffic_light.h \
-
-TEST_INC=$(INC)/test.h \
-				 $(INC)/traffic_light.h
+					$(SRC)/test.c \
+				 	$(SRC)/traffic_light.c 
 
 APP_OBJS=$(APP_SRCS:.c=.o)
 TEST_OBJS=$(TEST_SRCS:.c=.o)
 
-default: $(APP_BIN) $(TEST_BIN)
+default: clean $(APP_BIN) $(TEST_BIN) 
 	@echo build successful!
  
 $(APP_BIN): $(APP_OBJS) $(APP_INC) $(APP_SRCS)
@@ -41,11 +37,13 @@ $(TEST_BIN): $(TEST_OBJS)
 .c.o: 
 	$(CC) $(FLAGS) -c $^ -o $@
 
-run_app: run_test
+run:
+	./$(APP_BIN)
+
+run_all: run_test
 	./$(APP_BIN)
 
 run_test:
-	valgrind --leak-check=full \
 	./$(TEST_BIN)
 
 clean: 
@@ -56,6 +54,6 @@ clean:
 
 valgrind: $(BIN)
 	valgrind --leak-check=full \
-		./$(APP_BIN)
+		./$(APP_BIN) \
 		./$(TEST_BIN)
 
