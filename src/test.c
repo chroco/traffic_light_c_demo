@@ -11,20 +11,20 @@ int test_state_function(state_function func, state_t expected_state)
 
 int test_state_functions()
 {
-	printf("testing state functions: \n\n");
+	printf("unit testing state functions: \n\n");
 	
-	TEST_ASSERT_STATE_EQ(red_state(), red);
-	TEST_ASSERT_STATE_EQ(green_state(), green);
-	TEST_ASSERT_STATE_EQ(yellow_state(), yellow);
-	TEST_ASSERT_STATE_EQ(quit_state(), quit);
-	TEST_ASSERT_STATE_EQ(invalid_state(), invalid);
+	TEST_ASSERT_STATE_EQ(red_state(0), red);
+	TEST_ASSERT_STATE_EQ(green_state(0), green);
+	TEST_ASSERT_STATE_EQ(yellow_state(0), yellow);
+	TEST_ASSERT_STATE_EQ(quit_state(0), quit);
+	TEST_ASSERT_STATE_EQ(invalid_state(0), invalid);
 	
-	TEST_ASSERT_STATE_NOT(red_state(), invalid);
-	TEST_ASSERT_STATE_NOT(green_state(), invalid);
-	TEST_ASSERT_STATE_NOT(yellow_state(), invalid);
-	TEST_ASSERT_STATE_NOT(quit_state(), invalid);
-	TEST_ASSERT_STATE_NOT(invalid_state(), quit);
+	TEST_ASSERT_STATE_NOT(red_state(0), invalid);
+	TEST_ASSERT_STATE_NOT(green_state(0), invalid);
+	TEST_ASSERT_STATE_NOT(yellow_state(0), invalid);
+	TEST_ASSERT_STATE_NOT(quit_state(0), invalid);
+	TEST_ASSERT_STATE_NOT(invalid_state(0), quit);
 
-	printf("completed testing with no errors! \n\n");
+	printf("\nAll test successful! \n");
 	return 0;
 }

@@ -1,17 +1,21 @@
 #include "traffic_light.h"
 
+
+// state machine transition table
 state_transition_t table[] = {
-  {red,		  ok,    green},
-  {red,     off,    idle},
-  {green,   ok,   yellow},
-  {green,   off,    idle},
-  {yellow,  ok,      red},
-  {yellow,  off,    idle},
-  {idle,    ok,     idle},
-  {idle,    off,    quit},
+// curr     input    next
+  {red,		  ok,       green},
+  {red,     halt,      idle},
+  {green,   ok,      yellow},
+  {green,   halt,      idle},
+  {yellow,  ok,         red},
+  {yellow,  halt,      idle},
+  {idle,    ok,    			red},
+	{idle,    halt,      quit},
+  {idle,    repeat,    idle},
 };
 
-state_t (* state[])(void) = {
+state_t (* state[])(int) = {
 	red_state, 
 	green_state, 
 	yellow_state,
@@ -24,49 +28,51 @@ const size_t state_transision_size = sizeof(state_transition_t);
 const size_t table_size = sizeof(table);
 const uint16_t table_entries = table_size / state_transision_size;
 
-state_t red_state(void)
+void wait(const char *state_str, int delay_in_seconds)
 {
-	printf("red (%d seconds)\n",RED_LIGHT_TIME);
+	assert(state_str != NULL);
+	printf("%s (%d seconds)\n", state_str, delay_in_seconds);
+	sleep(delay_in_seconds);
+}
 
-	sleep(RED_LIGHT_TIME);
-
+state_t red_state(int delay_in_seconds)
+{
+	wait("red\0", delay_in_seconds);
+		
 	return red;
 }
 
-state_t green_state(void)
+state_t green_state(int delay_in_seconds)
 {
-	printf("green (%d seconds)\n",GREEN_LIGHT_TIME);
+	wait("green\0", delay_in_seconds);
 	
-	sleep(GREEN_LIGHT_TIME);
-
 	return green;
 }
 
-state_t yellow_state(void)
+state_t yellow_state(int delay_in_seconds)
 {
-	printf("yellow (%d seconds)\n",YELLOW_LIGHT_TIME);
+	wait("yellow\0", delay_in_seconds);
 	
-	sleep(YELLOW_LIGHT_TIME);
-
 	return yellow;
 }
 
-state_t idle_state(void)
+state_t idle_state(int delay_in_seconds)
 {
-	printf("idle\n");
+	wait("idle\0", delay_in_seconds);
 
 	return idle;
 }
 
-state_t quit_state(void)
+state_t quit_state(int delay_in_seconds)
 {
-	printf("quit\n");
+	wait("quit\0", delay_in_seconds);
 
 	return quit;
 }
 
-state_t invalid_state(void)
+state_t invalid_state(int delay_in_seconds)
 {
+	//wait(delay_in_seconds);
 	printf("invalid\n");
 
 	return invalid;
@@ -85,11 +91,42 @@ state_t lookup_transitions(state_t cur_state, input_t input)
 	return invalid;
 }
 
-uint16_t traffic_light_fsm() 
+int get_signal_time(state_t cur_state)
+{
+	int signal_time = 0;
+
+	switch(cur_state)
+	{
+		case red:
+			signal_time = RED_LIGHT_TIME;
+			break;
+		case green:
+			signal_time = GREEN_LIGHT_TIME;
+			break;
+		case yellow:
+			signal_time = YELLOW_LIGHT_TIME;
+			break;
+		case idle:
+			signal_time = IDLE_TIME;
+			break;
+		case quit:
+			signal_time = QUIT_TIME;
+			break;
+		case invalid:
+		default: 
+			signal_time = -1;
+			break;
+	}
+
+	return signal_time;
+}
+
+static input_t input = ok;
+
+int traffic_light_fsm() 
 {
   state_t cur_state = ENTRY_STATE;
-  input_t input = ok;
-  state_t (* state_func)(void);
+  state_t (* state_func)(int);
 
   for (;;) 
 	{
@@ -97,12 +134,44 @@ uint16_t traffic_light_fsm()
 		{
       break;
 		}
-
-    state_func = state[cur_state];
-    state_func();
+    
+		state_func = state[cur_state];
+		int signal_time = get_signal_time(cur_state);
+    state_func(signal_time);
     cur_state = lookup_transitions(cur_state, input);
 		assert(cur_state != invalid);
   }
 
   return EXIT_SUCCESS;
 }
+
+static void *run(void *arg) 
+{
+	assert(arg == NULL);	
+	
+	traffic_light_fsm();
+	
+	return NULL;
+}
+
+int start_traffic_light()
+{
+	pthread_t thread;
+	
+	int ret = pthread_create(&thread, NULL, run, NULL);
+	if(ret != 0)
+	{
+		printf("[ERROR]: %d pthread_create\n", ret);
+		return ret;
+	}
+
+	ret = pthread_join(thread, NULL);
+	if(ret != 0)
+	{
+		printf("[ERROR]: %d pthread_join\n", ret);
+		return ret;
+	}
+
+	return 0;
+}
+

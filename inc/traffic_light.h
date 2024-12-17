@@ -7,6 +7,7 @@
 #include <assert.h>
 #include <stdlib.h>
 #include <unistd.h>
+#include <pthread.h>
 
 #define ENTRY_STATE red
 #define EXIT_STATE quit
@@ -15,6 +16,12 @@
 #define RED_LIGHT_TIME 	   5
 #define GREEN_LIGHT_TIME   5
 #define YELLOW_LIGHT_TIME  2
+#define IDLE_TIME 				 1
+#define QUIT_TIME 				 0
+
+/*
+ * Moore is less and Mealy is more...
+ */
 
 typedef enum {
 	red, 
@@ -27,15 +34,16 @@ typedef enum {
 
 typedef enum {
 	ok, 
-	off
+	halt,
+	repeat
 } input_t;
 
-state_t red_state(void);
-state_t green_state(void);
-state_t yellow_state(void);
-state_t idle_state(void);
-state_t quit_state(void);
-state_t invalid_state(void);
+state_t red_state(int);
+state_t green_state(int);
+state_t yellow_state(int);
+state_t idle_state(int);
+state_t quit_state(int);
+state_t invalid_state(int);
 
 typedef struct {
   state_t cur_state;
@@ -43,7 +51,10 @@ typedef struct {
   state_t next_state;
 } state_transition_t;
 
+void wait(const char *, int);
+int get_signal_time(state_t);
 state_t lookup_transitions(state_t, input_t);
-uint16_t traffic_light_fsm();
+int traffic_light_fsm(void);
+int start_traffic_light(void);
 
 #endif

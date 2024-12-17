@@ -40,10 +40,10 @@ $(TEST_BIN): $(TEST_OBJS)
 run:
 	./$(APP_BIN)
 
-run_all: run_test
+run_all: test
 	./$(APP_BIN)
 
-run_test:
+test:
 	./$(TEST_BIN)
 
 clean: 
@@ -52,8 +52,7 @@ clean:
 		$(APP_BIN) \
 		$(TEST_BIN)
 
-valgrind: $(BIN)
+valgrind: 
 	valgrind --leak-check=full \
-		./$(APP_BIN) \
-		./$(TEST_BIN)
+		./$(APP_BIN) 
 
