@@ -1,6 +1,7 @@
 # binaries
 traffic_light_demo
 test
+send_cmd
 
 # directories
 ./obj
