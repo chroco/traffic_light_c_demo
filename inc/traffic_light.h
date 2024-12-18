@@ -8,6 +8,11 @@
 #include <stdlib.h>
 #include <unistd.h>
 #include <pthread.h>
+#include <string.h>
+#include <sys/socket.h>
+#include <sys/un.h>
+
+#define SOCKET_NAME "/tmp/traffic_light_socket"
 
 #define ENTRY_STATE red
 #define EXIT_STATE quit
@@ -18,6 +23,8 @@
 #define YELLOW_LIGHT_TIME  2
 #define IDLE_TIME 				 1
 #define QUIT_TIME 				 0
+
+#define BUFFER_SIZE 100
 
 /*
  * Moore is less and Mealy is more...
@@ -56,5 +63,7 @@ int get_signal_time(state_t);
 state_t lookup_transitions(state_t, input_t);
 int traffic_light_fsm(void);
 int start_traffic_light(void);
+int stop_traffic_light(void);
+int start_socket_server(void);
 
 #endif
