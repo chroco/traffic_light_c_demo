@@ -4,14 +4,15 @@
 // state machine transition table
 state_transition_t table[] = {
 // curr     input    next
-  {red,		  ok,     green},
-  {red,     halt,    idle},
-  {green,   ok,    yellow},
-  {green,   halt,    idle},
-  {yellow,  ok,       red},
-  {yellow,  halt,    idle},
-  {idle,    ok,      idle},
-  {idle,    halt,    quit},
+  {red,		  ok,       green},
+  {red,     halt,      idle},
+  {green,   ok,      yellow},
+  {green,   halt,      idle},
+  {yellow,  ok,         red},
+  {yellow,  halt,      idle},
+  {idle,    ok,    			red},
+	{idle,    halt,      quit},
+  {idle,    repeat,    idle},
 };
 
 state_t (* state[])(int) = {
@@ -112,19 +113,19 @@ int get_signal_time(state_t cur_state)
 			signal_time = QUIT_TIME;
 			break;
 		case invalid:
+		default: 
 			signal_time = -1;
-			break;
-		default:
 			break;
 	}
 
 	return signal_time;
 }
 
+static input_t input = ok;
+
 int traffic_light_fsm() 
 {
   state_t cur_state = ENTRY_STATE;
-  input_t input = ok;
   state_t (* state_func)(int);
 
   for (;;) 
@@ -143,3 +144,34 @@ int traffic_light_fsm()
 
   return EXIT_SUCCESS;
 }
+
+static void *run(void *arg) 
+{
+	assert(arg == NULL);	
+	
+	traffic_light_fsm();
+	
+	return NULL;
+}
+
+int start_traffic_light()
+{
+	pthread_t thread;
+	
+	int ret = pthread_create(&thread, NULL, run, NULL);
+	if(ret != 0)
+	{
+		printf("[ERROR]: %d pthread_create\n", ret);
+		return ret;
+	}
+
+	ret = pthread_join(thread, NULL);
+	if(ret != 0)
+	{
+		printf("[ERROR]: %d pthread_join\n", ret);
+		return ret;
+	}
+
+	return 0;
+}
+

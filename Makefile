@@ -52,8 +52,7 @@ clean:
 		$(APP_BIN) \
 		$(TEST_BIN)
 
-valgrind: $(BIN)
+valgrind: 
 	valgrind --leak-check=full \
-		./$(APP_BIN) \
-		./$(TEST_BIN)
+		./$(APP_BIN) 
 

@@ -7,6 +7,7 @@
 #include <assert.h>
 #include <stdlib.h>
 #include <unistd.h>
+#include <pthread.h>
 
 #define ENTRY_STATE red
 #define EXIT_STATE quit
@@ -33,7 +34,8 @@ typedef enum {
 
 typedef enum {
 	ok, 
-	halt
+	halt,
+	repeat
 } input_t;
 
 state_t red_state(int);
@@ -52,6 +54,7 @@ typedef struct {
 void wait(const char *, int);
 int get_signal_time(state_t);
 state_t lookup_transitions(state_t, input_t);
-int traffic_light_fsm();
+int traffic_light_fsm(void);
+int start_traffic_light(void);
 
 #endif
