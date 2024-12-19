@@ -1,5 +1,9 @@
 #include "traffic_light.h"
 
+/*
+ * traffic light simulation client
+ */
+
 void help(void)
 {
 	printf("invalid input!\n\n");
@@ -22,6 +26,7 @@ int main(int argc, char *argv[])
 			assert(argv[1]);
 			strncpy(buffer, argv[1], BUFFER_SIZE);
 			break;
+		
 		case 3:
 			// ./send_cmd {red | green | yellow | idle } {time_delay_in_seconds}
 			strncpy(buffer, argv[1], BUFFER_SIZE);
@@ -29,12 +34,12 @@ int main(int argc, char *argv[])
 			strncat(buffer, argv[2], sizeof("yellow "));
 			printf("sending: %s \n", buffer);
 			break;
+		
 		default:
 			// o_0
 			help();
 			return 1;
 	}
-
 
 	server_socket = socket(AF_UNIX, SOCK_STREAM, 0);
 
@@ -42,6 +47,7 @@ int main(int argc, char *argv[])
 	strcpy(server_addr.sun_path, SOCKET_NAME);
 	
 	int attempts = 0;
+	
 	for(; connection == -1; ++attempts )
 	{
 		if (attempts >= CLIENT_CONNECTION_ATTEMPTS)
@@ -51,6 +57,7 @@ int main(int argc, char *argv[])
 		}
 		
 		connection = connect(server_socket, (struct sockaddr *)&server_addr, sizeof(server_addr));
+		
 		usleep(100000);
 	}
 
@@ -64,5 +71,5 @@ int main(int argc, char *argv[])
 
 	close(server_socket);
 
-	return 0;
+	exit(0);
 }

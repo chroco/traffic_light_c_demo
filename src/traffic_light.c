@@ -1,16 +1,14 @@
 #include "traffic_light.h"
 
-state_timeing_t state_timing = {
-	.red_light_duration_in_seconds = 5,
-	.green_light_duration_in_seconds = 5,
-	.yellow_light_duration_in_seconds = 2, 
-	.idle_duration_in_seconds = 2
-};
- 
+
 /*
  * state machine transition table
+ *
+ * columns are for current state,
+ * input, and next state respectively
+ * 
  */
-const state_transition_t table[] = {
+static const state_transition_t table[] = {
 /* curr     input      next */
   {red,		  ok,       green},
   {red,     halt,      idle},
@@ -23,7 +21,19 @@ const state_transition_t table[] = {
   {idle,    repeat,    idle},
 };
 
-state_t (* state[])(int) = {
+/*
+ * static const values of structure
+ * sizes to determin number of rows
+ * in the state transition table
+ */
+static const size_t state_transision_size = sizeof(state_transition_t);
+static const size_t table_size = sizeof(table);
+static const uint16_t table_entries = table_size / state_transision_size;
+
+/*
+ * array of pointers to state functions
+ */
+static state_t (* state[])(int) = {
 	red_state, 
 	green_state, 
 	yellow_state,
@@ -32,21 +42,31 @@ state_t (* state[])(int) = {
 	invalid_state,
 };
 
-const size_t state_transision_size = sizeof(state_transition_t);
-const size_t table_size = sizeof(table);
-const uint16_t table_entries = table_size / state_transision_size;
-
-static input_t mealy_input = ok;
-pthread_mutex_t lock;	
+/* 
+ * shared state_timing_t structure
+ * requires mutex to access this structure
+ */
+static state_timeing_t state_timing = {
+	.red_light_duration_in_seconds = 5,
+	.green_light_duration_in_seconds = 5,
+	.yellow_light_duration_in_seconds = 2, 
+	.idle_duration_in_seconds = 2
+};
 
 /*
- *
+ * shard input_t mealy_input and associated lock 
+ */
+static input_t mealy_input = ok;
+static pthread_mutex_t mealy_lock;	
+
+/*
+ * 
  */
 void set_mealy_input(input_t input)
 {
-	pthread_mutex_lock(&lock);	
+	pthread_mutex_lock(&mealy_lock);	
 	mealy_input =  input;
-	pthread_mutex_unlock(&lock);	
+	pthread_mutex_unlock(&mealy_lock);	
 }
 
 /*
@@ -54,29 +74,28 @@ void set_mealy_input(input_t input)
  */
 input_t get_mealy_input(void)
 {
-	pthread_mutex_lock(&lock);
+	pthread_mutex_lock(&mealy_lock);
 	input_t input = mealy_input;
-	pthread_mutex_unlock(&lock);
+	pthread_mutex_unlock(&mealy_lock);
 
 	return input;
 }
 
 /*
+ * wait
  *
+ * sleeps for a desired amount of time
  */
 void wait(const char *state_str, int delay_in_seconds)
 {
 	assert(state_str != NULL);
 	printf("%s (%d seconds)\n", state_str, delay_in_seconds);
 	
-	for (int i = 0; i < delay_in_seconds; ++i)
-	{
-		sleep(1);
-	}
+	sleep(delay_in_seconds);
 }
 
 /*
- *
+ * state function
  */
 state_t red_state(int delay_in_seconds)
 {
@@ -86,7 +105,7 @@ state_t red_state(int delay_in_seconds)
 }
 
 /*
- *
+ * state function
  */
 state_t green_state(int delay_in_seconds)
 {
@@ -96,7 +115,7 @@ state_t green_state(int delay_in_seconds)
 }
 
 /*
- *
+ * state function
  */
 state_t yellow_state(int delay_in_seconds)
 {
@@ -106,7 +125,7 @@ state_t yellow_state(int delay_in_seconds)
 }
 
 /*
- *
+ * state function
  */
 state_t idle_state(int delay_in_seconds)
 { 
@@ -115,6 +134,9 @@ state_t idle_state(int delay_in_seconds)
 	return idle;
 }
 
+/*
+ * state function
+ */
 state_t quit_state(int delay_in_seconds)
 {
 	wait("quit\0", delay_in_seconds);
@@ -123,7 +145,7 @@ state_t quit_state(int delay_in_seconds)
 }
 
 /*
- *
+ * state function
  */
 state_t invalid_state(int delay_in_seconds)
 {
@@ -135,7 +157,9 @@ state_t invalid_state(int delay_in_seconds)
 }
 
 /*
+ * lookup_transitions
  *
+ * looks up next state based on current state and input
  */
 state_t lookup_transitions(state_t cur_state, input_t input)
 {	
@@ -153,37 +177,40 @@ state_t lookup_transitions(state_t cur_state, input_t input)
 }
 
 /*
+ * get_light_duration
  *
+ * returns a time duration based on current state
  */
-int get_signal_time(state_t cur_state)
+int get_light_duration(state_t cur_state)
 {
-	int signal_time = 0;
+	int light_duration = 0;
 
 	switch(cur_state)
 	{
 		case red:
-			signal_time = get_red_duration_in_seconds();
+			light_duration = get_red_duration_in_seconds();
 			break;
 		case green:
-			signal_time = get_green_duration_in_seconds();
+			light_duration = get_green_duration_in_seconds();
 			break;
 		case yellow:
-			signal_time = get_yellow_duration_in_seconds();
+			light_duration = get_yellow_duration_in_seconds();
 			break;
 		case idle:
-			signal_time = get_idle_duration_in_seconds();
+			light_duration = get_idle_duration_in_seconds();
 			break;
-		case quit:
-		case invalid:
 		default: 
-			signal_time = -1;
+			light_duration = -1;
 			break;
 	}
 
-	return signal_time;
+	return light_duration;
 }
 
 /*
+ * traffic_light_fsm 
+ *
+ * finite state machine to simulate a traffic light
  *
  */
 int traffic_light_fsm() 
@@ -195,7 +222,7 @@ int traffic_light_fsm()
 	
 	assert(good_input == ok);
 
-  for (;;) 
+  for (;;)  // loop and wait for input
 	{
     if (cur_state == EXIT_STATE)
 		{
@@ -203,7 +230,7 @@ int traffic_light_fsm()
 		}
     
 		state_func = state[cur_state];
-		int signal_time = get_signal_time(cur_state);
+		int signal_time = get_light_duration(cur_state);
     state_func(signal_time);
 	
 		state_t check_state;
@@ -212,6 +239,7 @@ int traffic_light_fsm()
 		{
 			unchecked_input = get_mealy_input();
 
+			// look up next state based on current state and input
 	    check_state = lookup_transitions(cur_state, unchecked_input);
 			
 			if(check_state == quit)
@@ -223,7 +251,8 @@ int traffic_light_fsm()
 			{
 				set_mealy_input(good_input);
 			}
-		} while (check_state == invalid);
+		} 
+		while (check_state == invalid);
 
 		good_input = get_mealy_input();
 		
@@ -236,9 +265,9 @@ int traffic_light_fsm()
 }
 
 /*
- *
+ * run - helper function to help launch threads
  */
-void *run(void *arg) 
+static void *run(void *arg) 
 {
 	assert(arg != NULL);	
 
@@ -251,7 +280,7 @@ void *run(void *arg)
 }
 
 /*
- *
+ * start_thread -
  */
 int start_thread(pthread_t thread, void *arg)
 {
@@ -268,19 +297,21 @@ int start_thread(pthread_t thread, void *arg)
 }
 
 /*
- *
+ * stop_thread -
  */
 int stop_thread(pthread_t thread)
 {
 	pthread_attr_t attr;
   int chk;
-	
+
+//*
 	pthread_attr_getdetachstate(&attr, &chk);	
 
 	if(chk == PTHREAD_CREATE_DETACHED) 
 	{
 		return 0;
 	}
+///*/
 
 	int ret = pthread_join(thread, NULL);
 	if(ret != 0)
@@ -289,10 +320,12 @@ int stop_thread(pthread_t thread)
 		return ret;
 	}
 
+	//exit(0);
 	return 0;
 }
 
-pthread_mutex_t duration_lock;
+// mutex for shared state_timing_t
+static pthread_mutex_t duration_lock;
 
 /*
  *
@@ -383,6 +416,10 @@ void set_idle_duration_in_seconds(int duration)
 }
 
 /*
+ * start_socket_server
+ *
+ * the socket server waits for input from a client and
+ * updates values for the fsm to use
  *
  */
 int start_socket_server()
@@ -391,21 +428,20 @@ int start_socket_server()
 	int client_socket;
 	struct sockaddr_un server_addr;
 	struct sockaddr_un client_addr;
-  const char delimiter[] = " ";
+	int slen = sizeof(server_addr);
+	const char delimiter[] = " ";
 
 	server_socket = socket(AF_UNIX, SOCK_STREAM, 0);
 
 	server_addr.sun_family = AF_UNIX;
 	strcpy(server_addr.sun_path, SOCKET_NAME);
 
-	int slen = sizeof(server_addr);
-
-	//unlink(SOCKET_NAME); 
+	unlink(SOCKET_NAME); 
 	bind(server_socket, (struct sockaddr *) &server_addr, slen);
 
 	listen(server_socket, 5);
 
-	for(;;)
+	for(;;) // work loop
 	{
 		unsigned int clen = sizeof(client_addr);
 		client_socket = accept(server_socket, (struct sockaddr *) &client_addr, &clen);
@@ -415,11 +451,13 @@ int start_socket_server()
 		const int arg_length = 20;
 		char arg[2][arg_length];
 		char buffer[BUFFER_SIZE];
-		
+	
+		// read from the client
 		read(client_socket, buffer, BUFFER_SIZE);
 		printf("recv: %s from client!\n", buffer);
 		fflush(stdout);
 
+		// tokenize the input
     char *token = strtok(buffer, delimiter);
 		strncpy(arg[0], token, arg_length);
 		printf("arg[0]: %s\n", arg[0]);
@@ -431,6 +469,8 @@ int start_socket_server()
 			printf("arg[1]: %s\n", arg[1]);
 		}
 
+		// filter the input 
+		
 		if (strncmp(arg[0], "ok", BUFFER_SIZE) == 0)
 		{
 			temp_input = ok;	
@@ -485,6 +525,7 @@ int start_socket_server()
 			strncpy(buffer, "invalid command", BUFFER_SIZE);
 		}
 	
+		// set mealy input from selected input
 		set_mealy_input(temp_input);
 
 		strncat(buffer, " received", strlen(" received") + 1);
@@ -494,7 +535,7 @@ int start_socket_server()
 
 		close(client_socket);
 	}
-	
-	return 0;
+
+	return 0;	
 }
 
