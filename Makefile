@@ -9,10 +9,8 @@ INC=./inc
 SRC=./src
 OBJ=./src/obj
 
-APP_CFLAGS=  
-TEST_CFLAGS=
-FLAGS=-I $(INC) -g -Wall -Wextra \
-			-Wno-unused-parameter 
+FLAGS=-I $(INC) -g -Wall -Wextra -Wno-uninitialized -pthread
+#			-Wno-unused-parameter 
 
 APP_SRCS=$(SRC)/main.c \
 				 $(SRC)/traffic_light.c 
@@ -31,15 +29,15 @@ default: clean $(APP_BIN) $(TEST_BIN) $(CLIENT_BIN)
 	@echo build successful!
  
 $(APP_BIN): $(APP_OBJS) $(APP_INC) $(APP_SRCS)
-	$(CC) $(APP_CFLAGS) -o $(APP_BIN) $(APP_OBJS)
+	$(CC) -o $(APP_BIN) $(APP_OBJS)
 	@echo $(APP_BIN) compiled!
 
 $(TEST_BIN): $(TEST_OBJS)
-	$(CC) $(TEST_CFLAGS) -o $(TEST_BIN) $(TEST_OBJS)
+	$(CC) -o $(TEST_BIN) $(TEST_OBJS)
 	@echo $(TEST_BIN) compiled!
 
 $(CLIENT_BIN): $(CLIENT_OBJS)
-	$(CC) $(CLIENT_CFLAGS) -o $(CLIENT_BIN) $(CLIENT_OBJS)
+	$(CC) -o $(CLIENT_BIN) $(CLIENT_OBJS)
 	@echo $(CLIENT_BIN) compiled!
 
 .c.o: 
@@ -55,6 +53,7 @@ run_all: run_test
 	./$(APP_BIN)
 
 run_test:
+	valgrind --leak-check=full \
 	./$(TEST_BIN)
 
 clean: 
@@ -65,8 +64,9 @@ clean:
 		$(CLIENT_BIN)
 
 valgrind: 
-	valgrind --leak-check=full \
+	valgrind \
+		--leak-check=full \
+		--show-leak-kinds=all \
+		-s \
 		./$(APP_BIN) \
-		./$(TEST_BIN) \
-		./$(CLIENT_BIN)
 

@@ -27,7 +27,8 @@ const size_t state_transision_size = sizeof(state_transition_t);
 const size_t table_size = sizeof(table);
 const uint16_t table_entries = table_size / state_transision_size;
 
-static input_t input = ok;
+static input_t mealy_input = ok;
+pthread_mutex_t lock;	
 
 void wait(const char *state_str, int delay_in_seconds)
 {
@@ -58,8 +59,10 @@ state_t yellow_state(int delay_in_seconds)
 }
 
 state_t idle_state(int delay_in_seconds)
-{
-	input = repeat; // stay in idle once selected
+{ 
+	pthread_mutex_lock(&lock);	
+	mealy_input = repeat; // stay in idle once selected
+	pthread_mutex_unlock(&lock);	
 	wait("idle\0", delay_in_seconds);
 	return idle;
 }
@@ -73,7 +76,8 @@ state_t quit_state(int delay_in_seconds)
 
 state_t invalid_state(int delay_in_seconds)
 {
-	//wait(delay_in_seconds);
+	(void)delay_in_seconds;
+	
 	printf("invalid\n");
 
 	return invalid;
@@ -85,12 +89,12 @@ state_t lookup_transitions(state_t cur_state, input_t input)
 	{
 		if(table[i].cur_state == cur_state && table[i].input == input)
 		{
-//			printf("found table entry, input: %u, %u, ", cur_state, input);
-//			printf("next_state: %u\n", table[i].next_state);
 			return table[i].next_state;
 		}
 	}
+
 	printf("[ERROR]: invalid state transition\n");
+	
 	return invalid;
 }
 
@@ -128,7 +132,8 @@ int traffic_light_fsm()
 {
   state_t cur_state = ENTRY_STATE;
   state_t (* state_func)(int);
-	input_t good_input = input;
+	input_t good_input = mealy_input;
+	input_t unchecked_input = 0;
 	
 	assert(good_input == ok);
 
@@ -147,7 +152,11 @@ int traffic_light_fsm()
 
 		do 
 		{
-	    check_state = lookup_transitions(cur_state, input);
+			pthread_mutex_lock(&lock);	
+			unchecked_input = mealy_input;
+			pthread_mutex_unlock(&lock);	
+
+	    check_state = lookup_transitions(cur_state, unchecked_input);
 			
 			if(check_state == quit)
 			{
@@ -156,11 +165,16 @@ int traffic_light_fsm()
 
 			if(check_state == invalid)
 			{
-				input = good_input;
+				pthread_mutex_lock(&lock);	
+				mealy_input = good_input;
+				pthread_mutex_unlock(&lock);	
 			}
 		} while (check_state == invalid);
 
-		good_input = input;
+		pthread_mutex_lock(&lock);	
+		good_input = mealy_input;
+		pthread_mutex_unlock(&lock);	
+		
 		cur_state = check_state;
 
 		assert(cur_state != invalid);
@@ -169,20 +183,23 @@ int traffic_light_fsm()
   return EXIT_SUCCESS;
 }
 
-static void *run(void *arg) 
+void *run(void *arg) 
 {
-	assert(arg == NULL);	
-	
-	traffic_light_fsm();
+	assert(arg != NULL);	
+
+	void (*func_ptr)(void) = NULL;
+	func_ptr = arg;
+
+	func_ptr();
 	
 	return NULL;
 }
 
-pthread_t thread;
-
-int start_traffic_light()
+int start_thread(pthread_t thread, void *arg)
 {
-	int ret = pthread_create(&thread, NULL, run, NULL);
+	assert(arg != NULL);	
+	
+	int ret = pthread_create(&thread, NULL, run, arg);
 	if(ret != 0)
 	{
 		printf("[ERROR]: %d pthread_create\n", ret);
@@ -192,8 +209,18 @@ int start_traffic_light()
 	return 0;
 }
 
-int stop_traffic_light()
+int stop_thread(pthread_t thread)
 {
+	pthread_attr_t attr;
+  int chk,rc;
+	
+	pthread_attr_getdetachstate(&attr, &chk);	
+
+	if(chk == PTHREAD_CREATE_DETACHED) 
+	{
+		return 0;
+	}
+
 	int ret = pthread_join(thread, NULL);
 	if(ret != 0)
 	{
@@ -227,28 +254,38 @@ int start_socket_server()
 	{
 		unsigned int clen = sizeof(client_addr);
 		client_socket = accept(server_socket, (struct sockaddr *) &client_addr, &clen);
-		
+	
+		pthread_mutex_lock(&lock);	
+		input_t temp_input = mealy_input;
+		pthread_mutex_unlock(&lock);	
+
 		char buffer[BUFFER_SIZE];
 		read(client_socket, buffer, BUFFER_SIZE);
+		
 		printf("recv: %s from client!\n", buffer);
 
 		if (strncmp(buffer, "ok", BUFFER_SIZE) == 0)
 		{
-			input = ok;	
+			temp_input = ok;	
 		}
 		else if (strncmp(buffer, "halt", BUFFER_SIZE) == 0)
 		{
-			input = halt;	
+			temp_input = halt;	
 		}
 		else if	(strncmp(buffer, "repeat", BUFFER_SIZE) == 0)
 		{
-			input = repeat;	
+			temp_input = repeat;	
 		}
 		else
 		{
 			printf("[ERROR]: Invalid command received %s, ignoring...\n", buffer);
 			strncpy(buffer, "invalid command", BUFFER_SIZE);
 		}
+		
+		pthread_mutex_lock(&lock);	
+		mealy_input = temp_input;
+		pthread_mutex_unlock(&lock);	
+
 		
 		strncat(buffer, " received", strlen(" received") + 1);
 

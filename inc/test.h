@@ -90,6 +90,8 @@
     return EXIT_FAILURE; \
   }}
 
-int test_state_functions();
+int unit_test_state_functions();
+int integration_test_ping_loop();
+int generic_test(void);
 
 #endif

@@ -9,7 +9,7 @@ int test_state_function(state_function func, state_t expected_state)
 }
 //*/
 
-int test_state_functions()
+int unit_test_state_functions()
 {
 	printf("unit testing state functions: \n\n");
 	
@@ -26,5 +26,53 @@ int test_state_functions()
 	TEST_ASSERT_STATE_NOT(invalid_state(0), quit);
 
 	printf("\nAll test successful! \n");
+	return 0;
+}
+
+/*
+static void *run(void *arg) 
+{
+	assert(arg == NULL);	
+	
+	start_socket_server();
+	
+	return NULL;
+}
+//*/
+
+int integration_test_ping_loop(void)
+{
+
+	printf("Starting integration testing\n");
+
+	pthread_t traffic_light_thread;
+	pthread_t socket_server_thread;
+
+	start_thread(traffic_light_thread, traffic_light_fsm);
+	start_thread(socket_server_thread, start_socket_server);
+
+	for (int i = 0; i < 5; ++i)
+	{
+		system("./send_cmd ok");
+		usleep(100000);
+	}	
+
+	stop_thread(traffic_light_thread);
+	stop_thread(socket_server_thread);
+
+	return 0;
+}
+
+int generic_test(void)
+{
+	printf("generic_test o_0... \n");	
+	
+	for (int i = 0; i < 100; ++i)
+	{
+		usleep(100000);
+	}
+
+	printf("passed generic_test!\n");	
+	
 	return 0;
 }

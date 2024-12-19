@@ -10,12 +10,12 @@
 
 int main(int argc, char *argv[])
 {
-	printf("usage: ./commander <command>\n");
-	printf("accepted commands: go, halt, repeat\n");
 	
 	if(argc < 2)
 	{
-		printf("invalid input!\n");
+		printf("invalid input!\n\n");
+		printf("usage: ./commander <command>\n");
+		printf("accepted commands: ok, halt, repeat\n");
 
 		return 1;
 	}
@@ -23,6 +23,7 @@ int main(int argc, char *argv[])
 	int server_socket;
 	struct sockaddr_un server_addr;
 	int connection_result;
+	char buffer[BUFFER_SIZE];
 
 	server_socket = socket(AF_UNIX, SOCK_STREAM, 0);
 
@@ -37,8 +38,6 @@ int main(int argc, char *argv[])
 		return 1;
 	}
 	
-	char buffer[BUFFER_SIZE];
-
 	strncpy(buffer, argv[1], BUFFER_SIZE);
 	printf("sending: %s \n", buffer);
 	write(server_socket, buffer, BUFFER_SIZE);

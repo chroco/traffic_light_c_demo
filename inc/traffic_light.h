@@ -11,6 +11,7 @@
 #include <string.h>
 #include <sys/socket.h>
 #include <sys/un.h>
+#include <signal.h>
 
 #define SOCKET_NAME "/tmp/traffic_light_socket"
 
@@ -65,5 +66,9 @@ int traffic_light_fsm(void);
 int start_traffic_light(void);
 int stop_traffic_light(void);
 int start_socket_server(void);
+void *run(void *);
+
+int start_thread(pthread_t, void *);
+int stop_thread(pthread_t);
 
 #endif
