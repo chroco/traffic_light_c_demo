@@ -54,10 +54,12 @@ run_all: run_test
 
 run_test:
 	valgrind --leak-check=full \
+	--show-leak-kinds=all \
+	-s \
 	./$(TEST_BIN)
 
 clean: 
-	rm -f $(SRC)/*.o \
+	@rm -f $(SRC)/*.o \
 		*.o \
 		$(APP_BIN) \
 		$(TEST_BIN) \
@@ -68,5 +70,5 @@ valgrind:
 		--leak-check=full \
 		--show-leak-kinds=all \
 		-s \
-		./$(APP_BIN) \
+		./$(APP_BIN) 
 
