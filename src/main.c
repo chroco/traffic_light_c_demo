@@ -7,6 +7,7 @@ int main(int argc, char *argv[])
 	
 	printf("Starting traffic light simulation\n");
 
+
 	pthread_t traffic_light_thread;
 	pthread_t socket_server_thread;
 

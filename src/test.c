@@ -1,14 +1,8 @@
 #include "test.h"
 
-typedef state_t (*state_function)(void);
 /*
-int test_state_function(state_function func, state_t expected_state)
-{
-	TEST_ASSERT_STATE_EQ(func(), expected_state);
-	return 0;
-}
-//*/
-
+ *
+ */
 int unit_test_state_functions()
 {
 	printf("unit testing state functions: \n\n");
@@ -30,19 +24,10 @@ int unit_test_state_functions()
 }
 
 /*
-static void *run(void *arg) 
-{
-	assert(arg == NULL);	
-	
-	start_socket_server();
-	
-	return NULL;
-}
-//*/
-
+ *
+ */
 int integration_test_ping_loop(void)
 {
-
 	printf("Starting integration testing\n");
 
 	pthread_t traffic_light_thread;
@@ -51,11 +36,100 @@ int integration_test_ping_loop(void)
 	start_thread(traffic_light_thread, traffic_light_fsm);
 	start_thread(socket_server_thread, start_socket_server);
 
-	for (int i = 0; i < 5; ++i)
+//*
 	{
-		system("./send_cmd ok");
-		usleep(100000);
-	}	
+		char cmd[] = "./send_cmd ok\0";
+		const int cycles = 5;
+		
+		printf("calling: %s\n", cmd);
+		
+		for (int i = 0; i < cycles; ++i)
+		{
+			int ret = system(cmd);
+			assert(ret == 0);
+			
+			usleep(100000);
+		}
+	}
+//*/
+
+//*
+	{
+		printf("\n");
+		char cmd[] = "./send_cmd red 3\0";
+		int ret = system(cmd);
+		assert(ret == 0);
+		printf("\n");
+	}
+//*/
+
+//*
+	{
+		printf("\n");
+		char cmd[] = "./send_cmd green 3\0";
+		int ret = system(cmd);
+		assert(ret == 0);
+		printf("\n");
+	}
+//*/
+
+//*
+	{
+		printf("\n");
+		char cmd[] = "./send_cmd yellow 1\0";
+		int ret = system(cmd);
+		assert(ret == 0);
+		printf("\n");
+	}
+//*/
+
+//*
+	{
+		printf("\n");
+		char cmd[] = "./send_cmd idle 1\0";
+		int ret = system(cmd);
+		assert(ret == 0);
+		printf("\n");
+	}
+//*/
+
+//*
+	{
+		printf("\n");
+		char cmd[] = "./send_cmd foo bar\0";
+		int ret = system(cmd);
+		assert(ret == 0);
+		printf("\n");
+	}
+//*/
+
+//*
+	{
+		printf("\n");
+		char cmd[] = "./send_cmd red bg0\0";
+		int ret = system(cmd);
+		assert(ret == 0);
+		printf("\n");
+	}
+//*/
+
+//*
+	{
+		char cmd[] = "./send_cmd halt\0";
+		const int cycles = 5;
+		
+		for (int i = 0; i < cycles; ++i)
+		{
+			printf("calling: %s\n", cmd);
+			
+			int ret = system(cmd);
+			assert(ret == 0);
+			
+			usleep(100000);
+		}
+
+	}
+//*/
 
 	stop_thread(traffic_light_thread);
 	stop_thread(socket_server_thread);
@@ -63,6 +137,9 @@ int integration_test_ping_loop(void)
 	return 0;
 }
 
+/*
+ *
+ */
 int generic_test(void)
 {
 	printf("generic_test o_0... \n");	
