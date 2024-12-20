@@ -1,6 +1,10 @@
 #ifndef _TRAFFIC_LIGHT_H_
 #define _TRAFFIC_LIGHT_H_
 
+/*
+ * Moore is less and Mealy is more...
+ */
+
 #include <stddef.h>
 #include <stdint.h>
 #include <stdio.h>
@@ -13,47 +17,50 @@
 #include <sys/un.h>
 #include <signal.h>
 #include <errno.h>
+#include <stdbool.h>
 
+#define SOCKET_NAME                 "./tmp/traffic_light_socket"
 #define CLIENT_CONNECTION_ATTEMPTS  20
-#define SOCKET_NAME "./traffic_light_socket"
-//#define SOCKET_NAME "/tmp/traffic_light_socket"
-
-#define ENTRY_STATE red
+#define MAX_LIGHT_DURATION          1000
+#define MIN_LIGHT_DURATION          1
+#define ENTRY_STATE                 red
 #define EXIT_STATE quit
+#define BUFFER_SIZE                 100
 
-#define BUFFER_SIZE 100
-
+/*
+ * time duration for states
+ */
 typedef struct {
-	// time in seconds
-	uint32_t red_light_duration_in_seconds;
-	uint32_t green_light_duration_in_seconds;
-	uint32_t yellow_light_duration_in_seconds;
-	uint32_t idle_duration_in_seconds;
+  // time in seconds
+  uint32_t red_light_duration_in_seconds;
+  uint32_t green_light_duration_in_seconds;
+  uint32_t yellow_light_duration_in_seconds;
+  uint32_t idle_duration_in_seconds;
 } state_timeing_t;
 
 /*
- * Moore is less and Mealy is more...
+ * fsm states
  */
 typedef enum {
-	red, 
-	green, 
-	yellow, 
-	idle,
-	quit,
-	invalid
+  red,
+  green,
+  yellow,
+  idle,
+  quit,
+  invalid
 } state_t;
 
+/*
+ * inputs
+ */
 typedef enum {
-	ok, 
-	halt,
-	repeat
+  ok,
+  halt,
+  repeat
 } input_t;
 
 /*
- * state_t <name>_state(int)
- *
- *
- *
+ * state functions
  */
 state_t red_state(int);
 state_t green_state(int);
@@ -62,6 +69,9 @@ state_t idle_state(int);
 state_t quit_state(int);
 state_t invalid_state(int);
 
+/*
+ * state transitions
+ */
 typedef struct {
   state_t cur_state;
   input_t input;
@@ -69,9 +79,20 @@ typedef struct {
 } state_transition_t;
 
 /*
+ * set_thread_running - the thread_running atomic_bool
+ * is used for threads knowing when to die
+ */
+void set_thread_running(bool);
+
+/*
+ * get_thread_running - 
+ */
+bool get_thread_running(void);
+
+/*
  * set_mealy_input - mutex pretected set
  *
- * @input_t: desired input {ok | halt | repeat} 
+ * @input_t: desired input {ok | halt | repeat}
  *
  */
 void set_mealy_input(input_t);
@@ -84,11 +105,11 @@ void set_mealy_input(input_t);
 input_t get_mealy_input(void);
 
 /*
- * wait - waits 
+ * wait - waits
  *
  * @state_str: { "red" | "green" | "yellow" | "idle" }
  *
- * @delay_in_seonds: 
+ * @delay_in_seonds:
  *
  */
 void wait(const char *, int);
@@ -127,6 +148,11 @@ int traffic_light_fsm(void);
 int start_traffic_light(void);
 
 /*
+ * check_duration - checks user input for a valid time duration
+ */
+uint32_t check_duration(char *);
+
+/*
  * start_socket_server -  entry for unix socket server in a thread
  */
 int start_socket_server(void);
@@ -140,7 +166,7 @@ int start_thread(pthread_t, void *);
  * stop_thread - cleans up a thread
  */
 int stop_thread(pthread_t);
-	
+
 /*
  * get_red_duration_in_seconds -
  */
@@ -150,12 +176,12 @@ uint32_t get_red_duration_in_seconds(void);
  * get_green_duration_in_seconds -
  */
 uint32_t get_green_duration_in_seconds(void);
-	
+
 /*
  * get_yellow_duration_in_seconds -
  */
 uint32_t get_yellow_duration_in_seconds(void);
-	
+
 /*
  * get_idle_duration_in_seconds -
  */
@@ -170,12 +196,12 @@ void set_red_duration_in_seconds(int);
  * set_green_duration_in_seconds -
  */
 void set_green_duration_in_seconds(int);
-	
+
 /*
  * set_yellow_duration_in_seconds -
  */
 void set_yellow_duration_in_seconds(int);
-	
+
 /*
  * set_idle_duration_in_seconds -
  */
